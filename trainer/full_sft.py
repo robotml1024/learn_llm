@@ -128,7 +128,7 @@ if __name__ == '__main__':
     model, tokenizer = init_model(lm_config=lm_config, from_weight=args.from_weight, save_dir=args.save_dir, device=device_type)
     train_ds = SFTDataset(data_path=args.data_path, tokenizer=tokenizer, max_length=args.max_seq_len)
     train_sampler = DistributedSampler(train_ds) if dist.is_initialized() else None
-    scaler = torch.cuda.amp.GradScaler(enabled=(args.dtype == 'bfloat16'))
+    scaler = torch.amp.GradScaler('cuda', enabled=(args.dtype == 'float16'))
     optimizer = optim.AdamW(model.parameters(), lr=args.learning_rate)
 
     # 6. 从ckp处恢复数据
