@@ -187,3 +187,36 @@ class DPODataset(Dataset):
             else:
                 i += 1
         return loss_mask
+    
+
+class RLAIFDataset(Dataset):
+    def __init__(self, data_path, tokenizer, max_length=1024, think_ratio=0.5):
+        super().__init__()
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+        self.think_ratio = think_ratio
+        self.samples = load_dataset('json', data_file=data_path, split='train')
+        self.bos_id = tokenizer(f'{tokenizer.bos_token}assistant\n', add_special_tokens=False).input_ids
+        self.eos_id = tokenizer(f'{tokenizer.eos_token}\n', add_special_tokens=False).input_ids
+
+    def __len__(self):
+        return len(self.samples)
+
+    def create_chat_prompt(self, conversations):
+        conversations = pre_process_chat(conversations)
+        use_thinking = random.random() < self.thinking_ratio
+        return self.tokenizer.apply_chat_template(
+            conversations[:-1],
+            tokenize=False,
+            open_thinking=use_thinking,
+            add_generation_prompt=True
+        )
+
+    def __getitem__(self, idx):
+        sample = self.samples[idx]
+        prompt = self.create_chat_prompt(sample['conversations'])
+
+        return {
+            'prompt': prompt,
+            'answer': ""
+        }

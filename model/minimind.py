@@ -255,11 +255,13 @@ class MinimindForCausalLM(PreTrainedModel, GenerationMixin):
         return MoeCausalLMOutputWithPast(loss=loss, logits=logits, aux_loss=aux_loss, past_key_values=kv_cache, hidden_states=hidden_state)
     
     @torch.inference_mode()
-    def generate(self, input_ids, max_new_token=8192, kv_cache=None, use_cache=False, attn_mask=None, do_sample=True, temperature=1.0, top_p=0.95, top_k=50, eos_token_id=2):
+    def generate(self, input_ids, max_new_token=8192, kv_cache=None, use_cache=False, attn_mask=None, do_sample=True, temperature=1.0, top_p=0.95, top_k=50, eos_token_id=2, num_return_sequences=1):
         '''
         input_ids输入，经过模型得到输出，将输出拼接上原始输入再接着输入直到得到eos_id
         模型最后输出是用greedy_search还是通过分布通过do_sample控制
         '''
+        input_ids = input_ids.repeat(num_return_sequences, 1)
+        attention_mask = attention_mask.repeat(num_return_sequences, 1) if attention_mask is not None else None
         finished = torch.zeros(input_ids.shape[0], dtype=torch.bool, device=input_ids.device)
         for _ in range(max_new_token):
             start_pos = kv_cache[0][0].shape[1] if kv_cache[0] is not None else 0
